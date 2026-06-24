@@ -1462,7 +1462,7 @@ export default function App() {
   };
 
   return (
-    <div className="app-shell min-h-screen flex items-center justify-center p-4" style={{ background: '#F0EDE8' }}>
+    <div className="app-shell min-h-screen flex items-center justify-center p-4" style={{ background: '#F6F6F6' }}>
       {/* Desktop left label */}
       <div className="app-side-panel-left flex flex-col items-center mr-8 gap-2">
         <div className="text-gray-400 text-xs font-medium uppercase tracking-widest">Waiver Wire</div>
