@@ -54,3 +54,16 @@
   z-index: 20;
   background-color: #ffffff;
 }
+
+@keyframes pulseGlow {
+  0%, 100% {
+    box-shadow: 0 0 10px 4px rgba(251, 79, 20, 0.2);
+  }
+  50% {
+    box-shadow: 0 0 15px 5px rgba(251, 79, 20, 0.3), 0 0 30px 10px rgba(251, 79, 20, 0.15);
+  }
+}
+
+.start-demo-glow {
+  animation: pulseGlow 1.5s ease-in-out infinite;
+}

@@ -356,12 +356,13 @@ function ChatPanel({ message, actions }: { message: React.ReactNode; actions: Re
 }
 
 // Primary CTA — glowing pulse. Accepts an optional color override for distinct choices.
-function LiveButton({ label, onClick, fullWidth, color = '#FB4F14', disabled = false }: {
+function LiveButton({ label, onClick, fullWidth, color = '#FB4F14', disabled = false, pulseGlow = false }: {
   label: string;
   onClick?: () => void;
   fullWidth?: boolean;
   color?: string;
   disabled?: boolean;
+  pulseGlow?: boolean;
 }) {
   if (disabled) {
     return (
@@ -375,14 +376,16 @@ function LiveButton({ label, onClick, fullWidth, color = '#FB4F14', disabled = f
   }
   return (
     <div className={`relative${fullWidth ? ' w-full' : ''}`}>
-      <div
-        className="absolute inset-0 rounded-full animate-pulse opacity-40 blur-sm"
-        style={{ background: color }}
-      />
+      {!pulseGlow && (
+        <div
+          className="absolute inset-0 rounded-full animate-pulse opacity-40 blur-sm"
+          style={{ background: color }}
+        />
+      )}
       <button
         onClick={onClick}
         style={{ background: color }}
-        className={`relative${fullWidth ? ' w-full' : ' px-4'} py-2.5 rounded-full text-sm font-semibold text-white transition-all duration-150 active:scale-95 shadow-md`}
+        className={`relative${fullWidth ? ' w-full' : ' px-4'} py-2.5 rounded-full text-sm font-semibold text-white transition-all duration-150 active:scale-95${pulseGlow ? ' start-demo-glow' : ' shadow-md'}`}
       >
         {label}
       </button>
@@ -558,7 +561,7 @@ function ScreenIntro({ advance }: { advance: () => void }) {
         </p>
       </div>
 
-      <LiveButton label="Start Demo" onClick={advance} />
+      <LiveButton label="Start Demo" onClick={advance} pulseGlow />
 
       <p className="text-[10px] text-gray-400 mt-4 leading-relaxed">
         Tap the glowing button to advance through each screen.
