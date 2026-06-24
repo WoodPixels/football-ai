@@ -608,7 +608,7 @@ function ScreenIntro({ advance }: { advance: () => void }) {
         </p>
       </div>
 
-      <div className="w-full bg-white border border-gray-200 rounded-2xl px-4 py-4 mb-6 text-left shadow-sm">
+      <div className="relative z-10 w-full bg-white border border-gray-200 rounded-2xl px-4 py-4 mb-6 text-left shadow-sm">
         <div className="flex items-center gap-2 mb-2">
           <div className="w-5 h-5 rounded-full bg-amber-100 flex items-center justify-center flex-shrink-0">
             <AlertCircle className="w-3 h-3 text-amber-600" />
