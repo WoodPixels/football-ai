@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Bot, Check, Trash2, Star, TrendingUp, AlertCircle, Plus, X, BarChart2, RotateCcw, ExternalLink } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -215,7 +215,83 @@ function PlayerRow({ player, rank, highlighted, selectable, selected, onSelect }
   );
 }
 
-function ChatBubble({ message, isAI = true }: { message: React.ReactNode; isAI?: boolean }) {
+const BUBBLE_ANIM_MS = 600;
+const AI_BUBBLE_CLS = 'rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 border border-gray-200';
+
+// Captured synchronously before a screen change so the next ChatPanel can read it on mount.
+let pendingOutgoingMessage: React.ReactNode | null = null;
+let activeBubbleMessage: React.ReactNode | null = null;
+
+function AnimatedBubbleBody({
+  message,
+  messageKey,
+  bubbleClassName,
+  bubbleStyle,
+  crossScreenOutgoing,
+}: {
+  message: React.ReactNode;
+  messageKey?: string | number;
+  bubbleClassName: string;
+  bubbleStyle?: React.CSSProperties;
+  crossScreenOutgoing?: React.ReactNode | null;
+}) {
+  const stableKey = messageKey ?? (typeof message === 'string' ? message : null);
+  const [localOutgoing, setLocalOutgoing] = useState<React.ReactNode | null>(null);
+  const [enterNonce, setEnterNonce] = useState(() => (crossScreenOutgoing ? 1 : 0));
+  const prevKeyRef = useRef(stableKey);
+  const displayedMessageRef = useRef(message);
+
+  const outgoing = crossScreenOutgoing ?? localOutgoing;
+
+  useEffect(() => {
+    if (stableKey === prevKeyRef.current) {
+      displayedMessageRef.current = message;
+      return;
+    }
+    setLocalOutgoing(displayedMessageRef.current);
+    displayedMessageRef.current = message;
+    prevKeyRef.current = stableKey;
+    setEnterNonce(n => n + 1);
+    const timer = setTimeout(() => setLocalOutgoing(null), BUBBLE_ANIM_MS);
+    return () => clearTimeout(timer);
+  }, [stableKey, message]);
+
+  return (
+    <div className="chat-bubble-stack">
+      {outgoing !== null && (
+        <div
+          className={`${bubbleClassName} chat-bubble-exit`}
+          style={bubbleStyle}
+        >
+          {outgoing}
+        </div>
+      )}
+      <div
+        key={enterNonce}
+        className={`${bubbleClassName} chat-bubble-enter`}
+        style={bubbleStyle}
+      >
+        {message}
+      </div>
+    </div>
+  );
+}
+
+function ChatBubble({
+  message,
+  messageKey,
+  isAI = true,
+  outgoingMessage,
+}: {
+  message: React.ReactNode;
+  messageKey?: string | number;
+  isAI?: boolean;
+  outgoingMessage?: React.ReactNode | null;
+}) {
+  useEffect(() => {
+    activeBubbleMessage = message;
+  }, [message]);
+
   if (isAI) {
     return (
       <div className="flex flex-col gap-1.5">
@@ -223,29 +299,58 @@ function ChatBubble({ message, isAI = true }: { message: React.ReactNode; isAI?:
           <div className="w-3 h-3 rounded-full flex-shrink-0" style={{ background: '#FB4F14' }} />
           <span className="text-[11px] font-semibold text-gray-500 tracking-wide">AI Insight</span>
         </div>
-        <div className="rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 border border-gray-200">
-          {message}
+        <div className="chat-bubble-clip">
+          <AnimatedBubbleBody
+            message={message}
+            messageKey={messageKey}
+            bubbleClassName={AI_BUBBLE_CLS}
+            crossScreenOutgoing={outgoingMessage}
+          />
         </div>
       </div>
     );
   }
   return (
     <div className="flex justify-end">
-      <div className="rounded-2xl rounded-tr-sm px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed text-white font-medium" style={{ background: '#FB4F14' }}>
-        {message}
+      <div className="chat-bubble-clip">
+        <AnimatedBubbleBody
+          message={message}
+          messageKey={messageKey}
+          bubbleClassName="rounded-2xl rounded-tr-sm px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed text-white font-medium"
+          bubbleStyle={{ background: '#FB4F14' }}
+          crossScreenOutgoing={outgoingMessage}
+        />
       </div>
     </div>
   );
 }
 
 function ChatPanel({ message, actions }: { message: React.ReactNode; actions: React.ReactNode }) {
+  const [outgoingMessage, setOutgoingMessage] = useState<React.ReactNode | null>(
+    () => pendingOutgoingMessage,
+  );
+
+  useEffect(() => {
+    pendingOutgoingMessage = null;
+    if (outgoingMessage === null) return;
+    const timer = setTimeout(() => setOutgoingMessage(null), BUBBLE_ANIM_MS);
+    return () => clearTimeout(timer);
+  }, []); // mount: consume pending outgoing and schedule removal
+
+  const renderedMessage =
+    outgoingMessage !== null && React.isValidElement(message)
+      ? React.cloneElement(message as React.ReactElement<{ outgoingMessage?: React.ReactNode | null }>, {
+          outgoingMessage,
+        })
+      : message;
+
   return (
     <div
-      className="flex-shrink-0 bg-white px-4 pt-3 pb-4 flex flex-col justify-between"
+      className="flex-shrink-0 bg-white px-4 pt-3 pb-4 flex flex-col justify-between overflow-visible"
       style={{ boxShadow: '0 -4px 12px rgba(0,0,0,0.10)', height: 264 }}
     >
-      <div>{message}</div>
-      <div className="flex flex-col gap-2">{actions}</div>
+      <div className="overflow-visible relative z-0">{renderedMessage}</div>
+      <div className="chat-panel-actions flex flex-col gap-2">{actions}</div>
     </div>
   );
 }
@@ -806,7 +911,7 @@ function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
       </div>
 
       <ChatPanel
-        message={<ChatBubble message={wizardMessage} />}
+        message={<ChatBubble message={wizardMessage} messageKey={passIndex ?? 'single'} />}
         actions={
           <LiveButton
             label="Drop Selected Player"
@@ -1016,11 +1121,18 @@ export default function App() {
 
   const sidebarIndex = getSidebarIndex(currentScreen, firstChoice);
 
+  const navigateToScreen = useCallback((screen: ScreenId) => {
+    if (screen !== currentScreen && activeBubbleMessage != null) {
+      pendingOutgoingMessage = activeBubbleMessage;
+    }
+    setCurrentScreen(screen);
+  }, [currentScreen]);
+
   // ── Transitions ─────────────────────────────────────────────────────────────
 
   const handleFilterChoice = (choice: PathChoice) => {
     setFirstChoice(choice);
-    setCurrentScreen('first_path');
+    navigateToScreen('first_path');
   };
 
   const handleFirstPathConfirm = () => {
@@ -1039,7 +1151,7 @@ export default function App() {
       setFuturePool(updated);
       setSelectedFutureId(updated[0].id); // reset FV selection to new top pick
     }
-    setCurrentScreen('second_path');
+    navigateToScreen('second_path');
   };
 
   const handleSecondPathConfirm = () => {
@@ -1051,15 +1163,17 @@ export default function App() {
       setConfirmedFuturePlayer(player);
     }
     // Two picks confirmed → show Drop Choice
-    setCurrentScreen('drop_choice');
+    navigateToScreen('drop_choice');
   };
 
   const handleSecondPathSkip = () => {
     // One pick → skip Drop Choice, go straight to Roster Drop
-    setCurrentScreen('roster_drop');
+    navigateToScreen('roster_drop');
   };
 
   const restart = () => {
+    pendingOutgoingMessage = null;
+    activeBubbleMessage = null;
     setCurrentScreen('intro');
     setFirstChoice(null);
     setSelectedFutureId(3);
@@ -1078,10 +1192,10 @@ export default function App() {
   const renderScreen = () => {
     switch (currentScreen) {
       case 'intro':
-        return <ScreenIntro advance={() => setCurrentScreen('waiver_home')} />;
+        return <ScreenIntro advance={() => navigateToScreen('waiver_home')} />;
 
       case 'waiver_home':
-        return <Screen1 advance={() => setCurrentScreen('filter_te')} />;
+        return <Screen1 advance={() => navigateToScreen('filter_te')} />;
 
       case 'filter_te':
         return <Screen2 onChoice={handleFilterChoice} />;
@@ -1134,13 +1248,13 @@ export default function App() {
             queuedTEs={queuedTEs}
             onSame={() => {
               setDropMode('same');
-              setCurrentScreen('roster_drop');
+              navigateToScreen('roster_drop');
             }}
             onDifferent={() => {
               setDropMode('different');
               setDropPassIndex(0);
               setDropAssignments({});
-              setCurrentScreen('roster_drop');
+              navigateToScreen('roster_drop');
             }}
           />
         );
@@ -1162,7 +1276,7 @@ export default function App() {
                   setDropPassIndex(1);
                   // stay on roster_drop — React will re-render with new passIndex
                 } else {
-                  setCurrentScreen('confirmation');
+                  navigateToScreen('confirmation');
                 }
               }}
             />
@@ -1172,14 +1286,14 @@ export default function App() {
           <Screen6
             advance={(selectedId) => {
               setDropAssignments({ 0: selectedId, 1: selectedId });
-              setCurrentScreen('confirmation');
+              navigateToScreen('confirmation');
             }}
           />
         );
       }
 
       case 'confirmation':
-        return <Screen7 advance={() => setCurrentScreen('outro')} queuedTEs={queuedTEs} dropAssignments={dropAssignments} dropMode={dropMode} />;
+        return <Screen7 advance={() => navigateToScreen('outro')} queuedTEs={queuedTEs} dropAssignments={dropAssignments} dropMode={dropMode} />;
 
       case 'outro':
         return <ScreenOutro restart={restart} />;

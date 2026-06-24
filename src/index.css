@@ -1,3 +1,56 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@keyframes fadeInDown {
+  from {
+    opacity: 0;
+    transform: translate3d(0, -100%, 0);
+  }
+  to {
+    opacity: 1;
+    transform: translate3d(0, 0, 0);
+  }
+}
+
+@keyframes fadeOutDown {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+    transform: translate3d(0, 100%, 0);
+  }
+}
+
+.chat-bubble-clip {
+  position: relative;
+  clip-path: inset(0 0 -100% 0);
+}
+
+.chat-bubble-stack {
+  position: relative;
+}
+
+.chat-bubble-enter {
+  animation: fadeInDown 600ms ease-in-out both;
+  position: relative;
+  z-index: 1;
+  height: auto;
+}
+
+.chat-bubble-exit {
+  animation: fadeOutDown 600ms ease-in-out both;
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 2;
+  height: auto;
+}
+
+.chat-panel-actions {
+  position: relative;
+  z-index: 20;
+  background-color: #ffffff;
+}
