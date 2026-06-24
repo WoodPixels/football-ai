@@ -1462,9 +1462,9 @@ export default function App() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: '#F0EDE8' }}>
+    <div className="app-shell min-h-screen flex items-center justify-center p-4" style={{ background: '#F0EDE8' }}>
       {/* Desktop left label */}
-      <div className="hidden sm:flex flex-col items-center mr-8 gap-2">
+      <div className="app-side-panel-left flex flex-col items-center mr-8 gap-2">
         <div className="text-gray-400 text-xs font-medium uppercase tracking-widest">Waiver Wire</div>
         <div className="text-gray-400 text-xs">AI Assistant</div>
         <div className="w-px h-16 bg-gray-300 mt-2" />
@@ -1472,9 +1472,9 @@ export default function App() {
       </div>
 
       {/* Phone frame */}
-      <div className="relative w-[375px] flex-shrink-0">
+      <div className="app-phone-wrapper relative w-[375px] flex-shrink-0">
         <div
-          className="rounded-[44px] overflow-hidden shadow-2xl"
+          className="app-phone-frame rounded-[44px] overflow-hidden shadow-2xl"
           style={{
             border: '3px solid #2A2A2A',
             background: '#F8F7F4',
@@ -1482,7 +1482,7 @@ export default function App() {
           }}
         >
           {/* Status bar */}
-          <div className="flex items-center justify-between px-6 pt-3 pb-1" style={{ background: '#F8F7F4' }}>
+          <div className="app-phone-status-bar flex items-center justify-between px-6 pt-3 pb-1" style={{ background: '#F8F7F4' }}>
             <span className="text-gray-900 text-xs font-semibold">9:41</span>
             <div className="w-24 h-5 rounded-full absolute left-1/2 -translate-x-1/2 top-2" style={{ background: '#2A2A2A' }} />
             <div className="flex items-center gap-1">
@@ -1501,7 +1501,7 @@ export default function App() {
 
           {/* Screen content — fixed height */}
           <div
-            className="overflow-hidden flex flex-col"
+            className="app-phone-content overflow-hidden flex flex-col"
             style={{ height: 652, background: '#F8F7F4' }}
           >
             <ScreenContentAnimContext.Provider value={contentAnimClass}>
@@ -1510,14 +1510,14 @@ export default function App() {
           </div>
 
           {/* Home indicator */}
-          <div className="flex justify-center py-2" style={{ background: '#F8F7F4' }}>
+          <div className="app-phone-home-indicator flex justify-center py-2" style={{ background: '#F8F7F4' }}>
             <div className="w-28 h-1 rounded-full" style={{ background: '#C8C4BE' }} />
           </div>
         </div>
       </div>
 
       {/* Desktop right: flow progress */}
-      <div className="hidden sm:flex flex-col items-start ml-8 gap-4 max-w-[180px]">
+      <div className="app-side-panel-right flex flex-col items-start ml-8 gap-4 max-w-[180px]">
         <div className="text-gray-400 text-[10px] font-bold uppercase tracking-widest">Flow Progress</div>
         <div className="flex flex-col gap-1.5">
           {SCREEN_LABELS.map((label, i) => i > sidebarIndex ? null : (
