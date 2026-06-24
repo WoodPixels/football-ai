@@ -251,12 +251,14 @@ function AnimatedBubbleBody({
   bubbleClassName,
   bubbleStyle,
   crossScreenOutgoing,
+  skipEnterAnimation = false,
 }: {
   message: React.ReactNode;
   messageKey?: string | number;
   bubbleClassName: string;
   bubbleStyle?: React.CSSProperties;
   crossScreenOutgoing?: React.ReactNode | null;
+  skipEnterAnimation?: boolean;
 }) {
   const stableKey = messageKey ?? (typeof message === 'string' ? message : null);
   const [localOutgoing, setLocalOutgoing] = useState<React.ReactNode | null>(null);
@@ -291,7 +293,7 @@ function AnimatedBubbleBody({
       )}
       <div
         key={enterNonce}
-        className={`${bubbleClassName} chat-bubble-enter`}
+        className={`${bubbleClassName}${skipEnterAnimation && enterNonce === 0 ? '' : ' chat-bubble-enter'}`}
         style={bubbleStyle}
       >
         {message}
@@ -305,11 +307,13 @@ function ChatBubble({
   messageKey,
   isAI = true,
   outgoingMessage,
+  skipEnterAnimation = false,
 }: {
   message: React.ReactNode;
   messageKey?: string | number;
   isAI?: boolean;
   outgoingMessage?: React.ReactNode | null;
+  skipEnterAnimation?: boolean;
 }) {
   useEffect(() => {
     activeBubbleMessage = message;
@@ -328,6 +332,7 @@ function ChatBubble({
             messageKey={messageKey}
             bubbleClassName={AI_BUBBLE_CLS}
             crossScreenOutgoing={outgoingMessage}
+            skipEnterAnimation={skipEnterAnimation}
           />
         </div>
       </div>
@@ -342,6 +347,7 @@ function ChatBubble({
           bubbleClassName="rounded-2xl rounded-tr-sm px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed text-white font-medium"
           bubbleStyle={{ background: '#FB4F14' }}
           crossScreenOutgoing={outgoingMessage}
+          skipEnterAnimation={skipEnterAnimation}
         />
       </div>
     </div>
@@ -576,6 +582,10 @@ function parseContentKey(key: string): { screen: ScreenId; passIndex?: 0 | 1 } {
   return { screen: key as ScreenId };
 }
 
+function shouldSkipContentTransition(fromKey: string, toKey: string): boolean {
+  return fromKey === 'roster_drop-0' && toKey === 'roster_drop-1';
+}
+
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
 function ScreenIntro({ advance }: { advance: () => void }) {
@@ -642,7 +652,7 @@ function Screen1({ advance }: { advance: () => void }) {
       </div>
 
       <ChatPanel
-        message={<ChatBubble message="Your only Tight End's on a bye this week. Want to tackle that plan first?" />}
+        message={<ChatBubble skipEnterAnimation message="Your only Tight End's on a bye this week. Want to tackle that plan first?" />}
         actions={<LiveButton label="Explore the plan." onClick={advance} fullWidth />}
       />
     </div>
@@ -956,6 +966,10 @@ function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
   const isSecondPass = passIndex === 1;
   const [selectedDropId, setSelectedDropId] = useState<number | null>(isSecondPass ? null : aiPickId);
 
+  useEffect(() => {
+    setSelectedDropId(passIndex === 1 ? null : aiPickId);
+  }, [passIndex, aiPickId]);
+
   const wizardMessage = passIndex === 0 && forTEName
     ? `Got it — I'll walk you through each one separately. Who are you dropping to make room for ${forTEName}?`
     : passIndex === 1 && forTEName
@@ -1222,6 +1236,12 @@ export default function App() {
 
     if (contentKey === displayContentKey) return;
 
+    if (shouldSkipContentTransition(displayContentKey, contentKey)) {
+      setContentAnimClass('');
+      setDisplayContentKey(contentKey);
+      return;
+    }
+
     setContentAnimClass('screen-content-exit');
     const timers: number[] = [];
 
@@ -1388,7 +1408,6 @@ export default function App() {
           const alreadyDroppedId = activePassIndex === 1 ? dropAssignments[0] : undefined;
           return (
             <Screen6
-              key={activePassIndex}
               forTEName={teName}
               passIndex={activePassIndex}
               alreadyDroppedId={alreadyDroppedId}
