@@ -693,7 +693,7 @@ function Screen5({ onSame, onDifferent, queuedTEs }: {
             <div key={p.id} className="flex items-center gap-3 bg-white border border-gray-200 rounded-xl px-3 py-3">
               <div
                 className="w-6 h-6 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-                style={i === 0 ? { background: '#FB4F14', color: '#fff' } : { background: '#F0EDE8', color: '#888' }}
+                style={{ background: '#F0EDE8', color: '#888' }}
               >
                 {i + 1}
               </div>
