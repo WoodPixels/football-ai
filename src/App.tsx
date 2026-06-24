@@ -1097,10 +1097,10 @@ function Screen7({ advance, queuedTEs, dropAssignments, dropMode }: {
       </div>
 
       <ChatPanel
-        message={<ChatBubble message="Nice. I also spotted a couple stud Wide Receivers on waiver, better than what's on your bench, no offense. Want a look?" />}
+        message={<ChatBubble message="Nice, Tight End done. I also spotted a couple stud Wide Receivers on waiver, better than what's on your bench, no offense. Want a look?" />}
         actions={<>
-          <LiveButton label="Yeah, show me." onClick={advance} fullWidth />
-          <SecondaryButton label="No thanks, I'm done" onClick={advance} fullWidth />
+          <LiveButton label="Show me" onClick={advance} fullWidth />
+          <SecondaryButton label="No thanks" onClick={advance} fullWidth />
         </>}
       />
     </div>
