@@ -808,7 +808,7 @@ function ScreenStreamer({
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Backup Options</h1>
-            <p className="text-xs text-gray-500">Streamer · Pick One</p>
+            <p className="text-xs font-semibold" style={{ color: '#FB4F14' }}>Streamer · Pick One</p>
           </div>
           <div className="flex items-center gap-1 bg-gray-100 rounded-lg px-2 py-1 border border-gray-200">
             <span className="text-xs text-gray-500 font-medium">TE Streamer</span>
@@ -987,7 +987,7 @@ function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Your Roster</h1>
-            <p className="text-xs text-gray-500">
+            <p className="text-xs font-semibold" style={{ color: '#FB4F14' }}>
               {forTEName ? `Dropping for: ${forTEName}` : 'Select a player to drop'}
             </p>
           </div>
@@ -1051,7 +1051,7 @@ function Screen7({ advance, queuedTEs, dropAssignments, dropMode }: {
             </div>
             <h1 className="text-lg font-bold text-gray-900">Waivers Queued!</h1>
           </div>
-          <p className="text-xs text-gray-500 pl-9">Processes Wednesday at 3:00 AM ET</p>
+          <p className="text-xs font-semibold pl-9" style={{ color: '#FB4F14' }}>Processes Wednesday at 3:00 AM ET</p>
         </div>
 
         <div className="bg-white border border-gray-200 rounded-2xl overflow-hidden mb-3 shadow-sm">
