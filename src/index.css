@@ -80,3 +80,21 @@
 .card-select-pulse {
   animation: cardSelectPulse 150ms ease-in-out;
 }
+
+.screen-content-area {
+  opacity: 1;
+}
+
+.screen-content-area.screen-content-exit {
+  opacity: 0;
+  transition: opacity 150ms ease-out;
+}
+
+.screen-content-area.screen-content-enter {
+  opacity: 0;
+}
+
+.screen-content-area.screen-content-enter.screen-content-enter-active {
+  opacity: 1;
+  transition: opacity 150ms ease-in;
+}

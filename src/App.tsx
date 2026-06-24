@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, createContext, useContext } from 'react';
 import { Bot, Check, Trash2, Star, TrendingUp, AlertCircle, Plus, X, BarChart2, RotateCcw, ExternalLink } from 'lucide-react';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -552,11 +552,37 @@ function InjuryModal({ onClose }: { onClose: () => void }) {
   );
 }
 
+// ─── Screen content transition ──────────────────────────────────────────────────
+
+const CONTENT_ANIM_MS = 150;
+const ScreenContentAnimContext = createContext('');
+
+function useScreenContentAreaClass() {
+  const animClass = useContext(ScreenContentAnimContext);
+  return `screen-content-area${animClass ? ` ${animClass}` : ''}`;
+}
+
+function getContentKey(screen: ScreenId, dropMode: 'same' | 'different', dropPassIndex: 0 | 1): string {
+  if (screen === 'roster_drop' && dropMode === 'different') {
+    return `${screen}-${dropPassIndex}`;
+  }
+  return screen;
+}
+
+function parseContentKey(key: string): { screen: ScreenId; passIndex?: 0 | 1 } {
+  if (key.startsWith('roster_drop-')) {
+    return { screen: 'roster_drop', passIndex: key.endsWith('-1') ? 1 : 0 };
+  }
+  return { screen: key as ScreenId };
+}
+
 // ─── Screens ──────────────────────────────────────────────────────────────────
 
 function ScreenIntro({ advance }: { advance: () => void }) {
+  const contentAreaClass = useScreenContentAreaClass();
+
   return (
-    <div className="flex flex-col h-full items-center justify-center px-6 text-center">
+    <div className={`flex flex-col h-full items-center justify-center px-6 text-center ${contentAreaClass}`}>
       <div className="mb-6">
         <img
           src="/images/image copy.png"
@@ -595,9 +621,11 @@ function ScreenIntro({ advance }: { advance: () => void }) {
 
 // Screen 1 — Waiver Home
 function Screen1({ advance }: { advance: () => void }) {
+  const contentAreaClass = useScreenContentAreaClass();
+
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-1 pb-2 flex-1 overflow-y-auto">
+      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Waiver Wire</h1>
@@ -623,9 +651,11 @@ function Screen1({ advance }: { advance: () => void }) {
 
 // Screen 2 — Filter TEs: two equal-weight path choices
 function Screen2({ onChoice }: { onChoice: (choice: PathChoice) => void }) {
+  const contentAreaClass = useScreenContentAreaClass();
+
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-1 pb-2 flex-1 overflow-y-auto">
+      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Waiver Wire</h1>
@@ -671,6 +701,7 @@ function ScreenFutureValue({
   onConfirm: () => void;
   onSkip?: () => void;
 }) {
+  const contentAreaClass = useScreenContentAreaClass();
   const [snapOpen, setSnapOpen] = useState(false);
   const [injuryOpen, setInjuryOpen] = useState(false);
 
@@ -678,7 +709,7 @@ function ScreenFutureValue({
     <div className="flex flex-col h-full relative">
       {snapOpen && <SnapModal onClose={() => setSnapOpen(false)} />}
       {injuryOpen && <InjuryModal onClose={() => setInjuryOpen(false)} />}
-      <div className="px-4 pt-1 pb-2 flex-1 overflow-y-auto">
+      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">TE Recommendations</h1>
@@ -760,9 +791,11 @@ function ScreenStreamer({
   onConfirm: () => void;
   onSkip?: () => void;
 }) {
+  const contentAreaClass = useScreenContentAreaClass();
+
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-1 pb-2 flex-1 overflow-y-auto">
+      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Backup Options</h1>
@@ -809,9 +842,11 @@ function Screen5({ onSame, onDifferent, queuedTEs }: {
   onDifferent: () => void;
   queuedTEs: TEPlayer[];
 }) {
+  const contentAreaClass = useScreenContentAreaClass();
+
   return (
     <div className="flex flex-col h-full justify-between">
-      <div className="px-4 pt-1 pb-2 overflow-y-auto">
+      <div className={`px-4 pt-1 pb-2 overflow-y-auto ${contentAreaClass}`}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Waiver Queue</h1>
@@ -916,6 +951,7 @@ function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
   passIndex?: number; // 0 = first pass, 1 = second pass; undefined = single-drop flow
   alreadyDroppedId?: number;
 }) {
+  const contentAreaClass = useScreenContentAreaClass();
   const aiPickId = ROSTER.find(p => p.drop)!.id;
   const isSecondPass = passIndex === 1;
   const [selectedDropId, setSelectedDropId] = useState<number | null>(isSecondPass ? null : aiPickId);
@@ -934,7 +970,7 @@ function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
 
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-1 pb-2 flex-1 overflow-y-auto">
+      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
         <div className="flex items-center justify-between mb-3">
           <div>
             <h1 className="text-lg font-bold text-gray-900">Your Roster</h1>
@@ -980,9 +1016,11 @@ function Screen7({ advance, queuedTEs, dropAssignments, dropMode }: {
   dropAssignments: Record<number, number>;
   dropMode: 'same' | 'different';
 }) {
+  const contentAreaClass = useScreenContentAreaClass();
+
   return (
     <div className="flex flex-col h-full">
-      <div className="px-4 pt-1 pb-2 flex-1 overflow-y-auto">
+      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
         <div className="mb-4">
           <div className="flex items-center gap-2 mb-1">
             <div
@@ -1050,8 +1088,10 @@ function Screen7({ advance, queuedTEs, dropAssignments, dropMode }: {
 }
 
 function ScreenOutro({ restart }: { restart: () => void }) {
+  const contentAreaClass = useScreenContentAreaClass();
+
   return (
-    <div className="flex flex-col h-full items-center justify-center px-6 text-center">
+    <div className={`flex flex-col h-full items-center justify-center px-6 text-center ${contentAreaClass}`}>
       <div className="mb-6">
         <img
           src="/images/image copy.png"
@@ -1168,6 +1208,38 @@ export default function App() {
     .filter((p): p is TEPlayer => p !== null);
 
   const sidebarIndex = getSidebarIndex(currentScreen, firstChoice);
+  const contentKey = getContentKey(currentScreen, dropMode, dropPassIndex);
+  const [displayContentKey, setDisplayContentKey] = useState(contentKey);
+  const [contentAnimClass, setContentAnimClass] = useState('');
+  const contentTransitionReady = useRef(false);
+
+  useEffect(() => {
+    if (!contentTransitionReady.current) {
+      contentTransitionReady.current = true;
+      setDisplayContentKey(contentKey);
+      return;
+    }
+
+    if (contentKey === displayContentKey) return;
+
+    setContentAnimClass('screen-content-exit');
+    const timers: number[] = [];
+
+    timers.push(window.setTimeout(() => {
+      setDisplayContentKey(contentKey);
+      setContentAnimClass('screen-content-enter');
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => {
+          setContentAnimClass('screen-content-enter screen-content-enter-active');
+        });
+      });
+      timers.push(window.setTimeout(() => {
+        setContentAnimClass('');
+      }, CONTENT_ANIM_MS));
+    }, CONTENT_ANIM_MS));
+
+    return () => timers.forEach(t => window.clearTimeout(t));
+  }, [contentKey, displayContentKey]);
 
   const navigateToScreen = useCallback((screen: ScreenId) => {
     if (screen !== currentScreen && activeBubbleMessage != null) {
@@ -1237,8 +1309,10 @@ export default function App() {
 
   // ── Render ──────────────────────────────────────────────────────────────────
 
-  const renderScreen = () => {
-    switch (currentScreen) {
+  const renderScreen = (activeContentKey: string) => {
+    const { screen, passIndex } = parseContentKey(activeContentKey);
+
+    switch (screen) {
       case 'intro':
         return <ScreenIntro advance={() => navigateToScreen('waiver_home')} />;
 
@@ -1309,18 +1383,19 @@ export default function App() {
 
       case 'roster_drop': {
         if (dropMode === 'different') {
-          const teName = queuedTEs[dropPassIndex]?.name ?? '';
-          const alreadyDroppedId = dropPassIndex === 1 ? dropAssignments[0] : undefined;
+          const activePassIndex = passIndex ?? 0;
+          const teName = queuedTEs[activePassIndex]?.name ?? '';
+          const alreadyDroppedId = activePassIndex === 1 ? dropAssignments[0] : undefined;
           return (
             <Screen6
-              key={dropPassIndex}
+              key={activePassIndex}
               forTEName={teName}
-              passIndex={dropPassIndex}
+              passIndex={activePassIndex}
               alreadyDroppedId={alreadyDroppedId}
               advance={(selectedId) => {
-                const updated = { ...dropAssignments, [dropPassIndex]: selectedId };
+                const updated = { ...dropAssignments, [activePassIndex]: selectedId };
                 setDropAssignments(updated);
-                if (dropPassIndex === 0) {
+                if (activePassIndex === 0) {
                   setDropPassIndex(1);
                   // stay on roster_drop — React will re-render with new passIndex
                 } else {
@@ -1391,7 +1466,9 @@ export default function App() {
             className="overflow-hidden flex flex-col"
             style={{ height: 652, background: '#F8F7F4' }}
           >
-            {renderScreen()}
+            <ScreenContentAnimContext.Provider value={contentAnimClass}>
+              {renderScreen(displayContentKey)}
+            </ScreenContentAnimContext.Provider>
           </div>
 
           {/* Home indicator */}
