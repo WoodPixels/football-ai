@@ -1010,12 +1010,19 @@ function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
       <ChatPanel
         message={<ChatBubble message={wizardMessage} messageKey={passIndex ?? 'single'} />}
         actions={
-          <LiveButton
-            label="Drop Selected Player"
-            onClick={() => selectedDropId !== null && advance(selectedDropId)}
-            fullWidth
-            disabled={selectedDropId === null}
-          />
+          <>
+            {passIndex !== undefined && (
+              <p className="text-xs text-center" style={{ color: '#888' }}>
+                {passIndex} of 2 drops selected
+              </p>
+            )}
+            <LiveButton
+              label="Drop Selected Player"
+              onClick={() => selectedDropId !== null && advance(selectedDropId)}
+              fullWidth
+              disabled={selectedDropId === null}
+            />
+          </>
         }
       />
     </div>
