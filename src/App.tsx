@@ -39,16 +39,6 @@ const ALL_PLAYERS = [
   { id: 8, name: 'Nate Holloway', pos: 'TE', team: 'DEN', owned: 6, pts: 1.8, trend: '+2.2' },
 ];
 
-const TE_ALL = [
-  { id: 3, name: 'Tyler Brandt', pos: 'TE', team: 'PHI', owned: 12, pts: 3.1, trend: '+5.4' },
-  { id: 6, name: 'Darius Knox', pos: 'TE', team: 'BUF', owned: 8, pts: 2.4, trend: '+1.9' },
-  { id: 8, name: 'Nate Holloway', pos: 'TE', team: 'DEN', owned: 6, pts: 1.8, trend: '+2.2' },
-  { id: 9, name: 'Quentin Park', pos: 'TE', team: 'LAR', owned: 5, pts: 1.6, trend: '+0.7' },
-  { id: 10, name: 'Isaiah Ferrell', pos: 'TE', team: 'NE', owned: 4, pts: 1.1, trend: '+0.3' },
-  { id: 11, name: 'Marcus Trent', pos: 'TE', team: 'ATL', owned: 3, pts: 0.8, trend: '+0.1' },
-];
-
-// Master lookup for all TE players referenced across both pools
 const TE_PLAYER_DATA: Record<number, Omit<TEPlayer, 'rank' | 'highlight'>> = {
   3: { id: 3, name: 'Tyler Brandt', pos: 'TE', team: 'PHI', owned: 12, pts: 3.1, trend: '+5.4' },
   6: { id: 6, name: 'Darius Knox', pos: 'TE', team: 'BUF', owned: 8, pts: 2.4, trend: '+1.9' },
@@ -241,59 +231,54 @@ function PlayerRow({ player, rank, highlighted, selectable, selected, onSelect }
 const BUBBLE_ANIM_MS = 600;
 const AI_BUBBLE_CLS = 'rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 border border-gray-200';
 
+const WAIVER_INTRO_MSG = "Your only Tight End's on a bye this week. Want to tackle that plan first?";
+const WAIVER_FILTER_MSG = 'Future value guy that could blossom into a starter, or a high ceiling streamer play?';
+
 // Captured synchronously before a screen change so the next ChatPanel can read it on mount.
 let pendingOutgoingMessage: React.ReactNode | null = null;
 let activeBubbleMessage: React.ReactNode | null = null;
+// Settled message on the merged Waiver Home chat — updated only after a transition finishes.
+let settledBubbleMessage: React.ReactNode = WAIVER_INTRO_MSG;
 
 function AnimatedBubbleBody({
   message,
   messageKey,
   bubbleClassName,
   bubbleStyle,
-  crossScreenOutgoing,
+  outgoingSnapshot,
   skipEnterAnimation = false,
 }: {
   message: React.ReactNode;
   messageKey?: string | number;
   bubbleClassName: string;
   bubbleStyle?: React.CSSProperties;
-  crossScreenOutgoing?: React.ReactNode | null;
+  outgoingSnapshot?: React.ReactNode | null;
   skipEnterAnimation?: boolean;
 }) {
   const stableKey = messageKey ?? (typeof message === 'string' ? message : null);
-  const [localOutgoing, setLocalOutgoing] = useState<React.ReactNode | null>(null);
-  const [enterNonce, setEnterNonce] = useState(() => (crossScreenOutgoing ? 1 : 0));
   const prevKeyRef = useRef(stableKey);
-  const displayedMessageRef = useRef(message);
+  const [enterNonce, setEnterNonce] = useState(() => (outgoingSnapshot ? 1 : 0));
 
-  const outgoing = crossScreenOutgoing ?? localOutgoing;
-
-  useEffect(() => {
-    if (stableKey === prevKeyRef.current) {
-      displayedMessageRef.current = message;
-      return;
-    }
-    setLocalOutgoing(displayedMessageRef.current);
-    displayedMessageRef.current = message;
+  if (stableKey !== prevKeyRef.current) {
     prevKeyRef.current = stableKey;
     setEnterNonce(n => n + 1);
-    const timer = setTimeout(() => setLocalOutgoing(null), BUBBLE_ANIM_MS);
-    return () => clearTimeout(timer);
-  }, [stableKey, message]);
+  }
+
+  const showEnterAnim = !(skipEnterAnimation && enterNonce === 0);
 
   return (
     <div className="chat-bubble-stack">
-      {outgoing !== null && (
+      {outgoingSnapshot != null && (
         <div
           className={`${bubbleClassName} chat-bubble-exit`}
           style={bubbleStyle}
         >
-          {outgoing}
+          {outgoingSnapshot}
         </div>
       )}
       <div
         key={enterNonce}
-        className={`${bubbleClassName}${skipEnterAnimation && enterNonce === 0 ? '' : ' chat-bubble-enter'}`}
+        className={`${bubbleClassName}${showEnterAnim ? ' chat-bubble-enter' : ''}`}
         style={bubbleStyle}
       >
         {message}
@@ -306,18 +291,16 @@ function ChatBubble({
   message,
   messageKey,
   isAI = true,
-  outgoingMessage,
+  outgoingSnapshot,
   skipEnterAnimation = false,
 }: {
   message: React.ReactNode;
   messageKey?: string | number;
   isAI?: boolean;
-  outgoingMessage?: React.ReactNode | null;
+  outgoingSnapshot?: React.ReactNode | null;
   skipEnterAnimation?: boolean;
 }) {
-  useEffect(() => {
-    activeBubbleMessage = message;
-  }, [message]);
+  activeBubbleMessage = message;
 
   if (isAI) {
     return (
@@ -331,7 +314,7 @@ function ChatBubble({
             message={message}
             messageKey={messageKey}
             bubbleClassName={AI_BUBBLE_CLS}
-            crossScreenOutgoing={outgoingMessage}
+            outgoingSnapshot={outgoingSnapshot}
             skipEnterAnimation={skipEnterAnimation}
           />
         </div>
@@ -346,7 +329,7 @@ function ChatBubble({
           messageKey={messageKey}
           bubbleClassName="rounded-2xl rounded-tr-sm px-3.5 py-2.5 max-w-[85%] text-sm leading-relaxed text-white font-medium"
           bubbleStyle={{ background: '#FB4F14' }}
-          crossScreenOutgoing={outgoingMessage}
+          outgoingSnapshot={outgoingSnapshot}
           skipEnterAnimation={skipEnterAnimation}
         />
       </div>
@@ -355,21 +338,21 @@ function ChatBubble({
 }
 
 function ChatPanel({ message, actions }: { message: React.ReactNode; actions: React.ReactNode }) {
-  const [outgoingMessage, setOutgoingMessage] = useState<React.ReactNode | null>(
+  const [outgoingSnapshot, setOutgoingSnapshot] = useState<React.ReactNode | null>(
     () => pendingOutgoingMessage,
   );
 
   useEffect(() => {
     pendingOutgoingMessage = null;
-    if (outgoingMessage === null) return;
-    const timer = setTimeout(() => setOutgoingMessage(null), BUBBLE_ANIM_MS);
+    if (outgoingSnapshot === null) return;
+    const timer = setTimeout(() => setOutgoingSnapshot(null), BUBBLE_ANIM_MS);
     return () => clearTimeout(timer);
-  }, []); // mount: consume pending outgoing and schedule removal
+  }, []); // mount: consume pending snapshot and schedule removal
 
   const renderedMessage =
-    outgoingMessage !== null && React.isValidElement(message)
-      ? React.cloneElement(message as React.ReactElement<{ outgoingMessage?: React.ReactNode | null }>, {
-          outgoingMessage,
+    outgoingSnapshot !== null && React.isValidElement(message)
+      ? React.cloneElement(message as React.ReactElement<{ outgoingSnapshot?: React.ReactNode | null }>, {
+          outgoingSnapshot,
         })
       : message;
 
@@ -569,6 +552,7 @@ function useScreenContentAreaClass() {
 }
 
 function getContentKey(screen: ScreenId, dropMode: 'same' | 'different', dropPassIndex: 0 | 1): string {
+  if (screen === 'filter_te') return 'waiver_home';
   if (screen === 'roster_drop' && dropMode === 'different') {
     return `${screen}-${dropPassIndex}`;
   }
@@ -629,67 +613,82 @@ function ScreenIntro({ advance }: { advance: () => void }) {
   );
 }
 
-// Screen 1 — Waiver Home
-function Screen1({ advance }: { advance: () => void }) {
+function WaiverHomeContent() {
   const contentAreaClass = useScreenContentAreaClass();
 
   return (
-    <div className="flex flex-col h-full">
-      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Waiver Wire</h1>
-            <p className="text-xs font-semibold" style={{ color: '#FB4F14' }}>Week 9 · Available Players</p>
-          </div>
-          <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg px-2.5 py-1.5 border border-gray-200">
-            <span className="text-xs text-gray-600 font-medium">All Positions</span>
-          </div>
+    <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
+      <div className="flex items-center justify-between mb-3">
+        <div>
+          <h1 className="text-lg font-bold text-gray-900">Waiver Wire</h1>
+          <p className="text-xs font-semibold" style={{ color: '#FB4F14' }}>Week 9 · Available Players</p>
         </div>
-        <SectionLabel label="Top Available" />
-        <div className="flex flex-col gap-2">
-          {[...ALL_PLAYERS].sort((a, b) => b.pts - a.pts).map(p => <PlayerRow key={p.id} player={p} />)}
+        <div className="flex items-center gap-1.5 bg-gray-100 rounded-lg px-2.5 py-1.5 border border-gray-200">
+          <span className="text-xs text-gray-600 font-medium">All Positions</span>
         </div>
       </div>
-
-      <ChatPanel
-        message={<ChatBubble skipEnterAnimation message="Your only Tight End's on a bye this week. Want to tackle that plan first?" />}
-        actions={<LiveButton label="Explore the plan." onClick={advance} fullWidth />}
-      />
+      <SectionLabel label="Top Available" />
+      <div className="flex flex-col gap-2">
+        {[...ALL_PLAYERS].sort((a, b) => b.pts - a.pts).map(p => <PlayerRow key={p.id} player={p} />)}
+      </div>
     </div>
   );
 }
 
-// Screen 2 — Filter TEs: two equal-weight path choices
-function Screen2({ onChoice }: { onChoice: (choice: PathChoice) => void }) {
-  const contentAreaClass = useScreenContentAreaClass();
+function ScreenWaiverHome({
+  chatPhase,
+  advance,
+  onChoice,
+}: {
+  chatPhase: 'intro' | 'filter';
+  advance: () => void;
+  onChoice: (choice: PathChoice) => void;
+}) {
+  const [outgoingSnapshot, setOutgoingSnapshot] = useState<React.ReactNode | null>(null);
+
+  useEffect(() => {
+    if (outgoingSnapshot === null) return;
+    const timer = window.setTimeout(() => setOutgoingSnapshot(null), BUBBLE_ANIM_MS);
+    return () => window.clearTimeout(timer);
+  }, [outgoingSnapshot]);
+
+  // Update settled ref only once the bubble is stable (no active exit animation).
+  useEffect(() => {
+    if (outgoingSnapshot !== null) return;
+    settledBubbleMessage = chatPhase === 'filter' ? WAIVER_FILTER_MSG : WAIVER_INTRO_MSG;
+  }, [chatPhase, outgoingSnapshot]);
+
+  const handleExplore = () => {
+    setOutgoingSnapshot(WAIVER_INTRO_MSG);
+    advance();
+  };
+
+  const handleChoice = (choice: PathChoice) => {
+    pendingOutgoingMessage = settledBubbleMessage;
+    onChoice(choice);
+  };
 
   return (
     <div className="flex flex-col h-full">
-      <div className={`px-4 pt-1 pb-2 flex-1 overflow-y-auto ${contentAreaClass}`}>
-        <div className="flex items-center justify-between mb-3">
-          <div>
-            <h1 className="text-lg font-bold text-gray-900">Waiver Wire</h1>
-            <p className="text-xs font-semibold" style={{ color: '#FB4F14' }}>Filtering: TE · Week 9</p>
-          </div>
-          <div
-            className="flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 border"
-            style={{ background: '#FFF5F0', borderColor: '#FFCAB0' }}
-          >
-            <span className="text-xs font-bold" style={{ color: '#FB4F14' }}>TE</span>
-          </div>
-        </div>
-        <SectionLabel label="Available TEs" />
-        <div className="flex flex-col gap-2">
-          {TE_ALL.map(p => <PlayerRow key={p.id} player={p} />)}
-        </div>
-      </div>
+      <WaiverHomeContent />
 
       <ChatPanel
-        message={<ChatBubble message="Are you feeling a future value guy that could blossom into a starter, or a high ceiling streamer play?" />}
-        actions={<>
-          <LiveButton label="Future value" onClick={() => onChoice('future')} fullWidth />
-          <LiveButton label="Streamer" onClick={() => onChoice('streamer')} fullWidth color="#D9480F" />
-        </>}
+        message={
+          <ChatBubble
+            skipEnterAnimation={chatPhase === 'intro' && outgoingSnapshot === null}
+            messageKey={chatPhase === 'intro' ? 'waiver-intro' : 'filter-te'}
+            message={chatPhase === 'intro' ? WAIVER_INTRO_MSG : WAIVER_FILTER_MSG}
+            outgoingSnapshot={outgoingSnapshot}
+          />
+        }
+        actions={
+          chatPhase === 'intro'
+            ? <LiveButton label="Explore the plan." onClick={handleExplore} fullWidth />
+            : <>
+              <LiveButton label="Future value" onClick={() => handleChoice('future')} fullWidth />
+              <LiveButton label="Streamer" onClick={() => handleChoice('streamer')} fullWidth color="#D9480F" />
+            </>
+        }
       />
     </div>
   );
@@ -1196,6 +1195,7 @@ function getSidebarIndex(screen: ScreenId, firstChoice: PathChoice | null): numb
 
 export default function App() {
   const [currentScreen, setCurrentScreen] = useState<ScreenId>('intro');
+  const [waiverChatPhase, setWaiverChatPhase] = useState<'intro' | 'filter'>('intro');
   const [firstChoice, setFirstChoice] = useState<PathChoice | null>(null);
 
   // Per-pool selection state (persist across renders so taps are remembered)
@@ -1262,11 +1262,15 @@ export default function App() {
   }, [contentKey, displayContentKey]);
 
   const navigateToScreen = useCallback((screen: ScreenId) => {
-    if (screen !== currentScreen && activeBubbleMessage != null) {
-      pendingOutgoingMessage = activeBubbleMessage;
+    if (screen !== currentScreen) {
+      const fromKey = getContentKey(currentScreen, dropMode, dropPassIndex);
+      const toKey = getContentKey(screen, dropMode, dropPassIndex);
+      if (fromKey !== toKey && pendingOutgoingMessage == null && activeBubbleMessage != null) {
+        pendingOutgoingMessage = activeBubbleMessage;
+      }
     }
     setCurrentScreen(screen);
-  }, [currentScreen]);
+  }, [currentScreen, dropMode, dropPassIndex]);
 
   // ── Transitions ─────────────────────────────────────────────────────────────
 
@@ -1314,7 +1318,9 @@ export default function App() {
   const restart = () => {
     pendingOutgoingMessage = null;
     activeBubbleMessage = null;
+    settledBubbleMessage = WAIVER_INTRO_MSG;
     setCurrentScreen('intro');
+    setWaiverChatPhase('intro');
     setFirstChoice(null);
     setSelectedFutureId(3);
     setSelectedStreamerId(6);
@@ -1337,10 +1343,16 @@ export default function App() {
         return <ScreenIntro advance={() => navigateToScreen('waiver_home')} />;
 
       case 'waiver_home':
-        return <Screen1 advance={() => navigateToScreen('filter_te')} />;
-
-      case 'filter_te':
-        return <Screen2 onChoice={handleFilterChoice} />;
+        return (
+          <ScreenWaiverHome
+            chatPhase={waiverChatPhase}
+            advance={() => {
+              setWaiverChatPhase('filter');
+              navigateToScreen('filter_te');
+            }}
+            onChoice={handleFilterChoice}
+          />
+        );
 
       case 'first_path':
         return firstChoice === 'future'

@@ -33,14 +33,16 @@
 }
 
 .chat-bubble-enter {
-  animation: fadeInDown 600ms ease-in-out both;
+  animation: fadeInDown 600ms ease-in-out forwards;
   position: relative;
   z-index: 1;
   height: auto;
 }
 
 .chat-bubble-exit {
-  animation: fadeOutDown 600ms ease-in-out both;
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+  animation: fadeOutDown 600ms ease-in-out forwards;
   position: absolute;
   top: 0;
   left: 0;
