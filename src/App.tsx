@@ -187,6 +187,7 @@ function PlayerRow({ player, rank, highlighted, selectable, selected, onSelect }
   onSelect?: () => void;
 }) {
   const isHighlighted = highlighted ?? player.highlight;
+  const isEmphasized = isHighlighted || selected;
   const { pulsing, handleClick, handleAnimationEnd } = useCardSelectPulse(
     () => onSelect?.(),
     !!selectable,
@@ -213,7 +214,7 @@ function PlayerRow({ player, rank, highlighted, selectable, selected, onSelect }
       <Avatar name={player.name} pos={player.pos} size="md" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-2">
-          <span className={`font-semibold truncate text-gray-900 ${isHighlighted ? 'text-base' : 'text-sm'}`}>
+          <span className={`font-semibold truncate text-gray-900 ${isEmphasized ? 'text-base' : 'text-sm'}`}>
             {player.name}
           </span>
           {isHighlighted && <Star className="w-3.5 h-3.5 flex-shrink-0" style={{ color: '#FB4F14', fill: '#FB4F14' }} />}
@@ -226,7 +227,7 @@ function PlayerRow({ player, rank, highlighted, selectable, selected, onSelect }
         </div>
       </div>
       <div className="text-right flex-shrink-0">
-        <div className={`font-bold text-gray-900 ${isHighlighted ? 'text-base' : 'text-sm'}`}>
+        <div className={`font-bold text-gray-900 ${isEmphasized ? 'text-base' : 'text-sm'}`}>
           {player.pts} <span className="text-gray-400 text-xs font-normal">pts</span>
         </div>
         <div className={`text-xs font-medium ${player.trend.startsWith('+') ? 'text-emerald-600' : 'text-red-500'}`}>
@@ -885,7 +886,7 @@ function RosterDropRow({
       <Avatar name={player.name} pos={player.pos} size="md" />
       <div className="flex-1 min-w-0">
         <div className="flex items-center gap-1.5 flex-wrap">
-          <span className={`text-sm font-semibold truncate ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+          <span className={`font-semibold truncate ${isSelected ? 'text-base text-gray-900' : 'text-sm text-gray-700'}`}>
             {player.name}
           </span>
           {isAiPick && isSelected && !isTaken && (
