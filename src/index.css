@@ -67,3 +67,16 @@
 .start-demo-glow {
   animation: pulseGlow 1.5s ease-in-out infinite;
 }
+
+@keyframes cardSelectPulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
+.card-select-pulse {
+  animation: cardSelectPulse 150ms ease-in-out;
+}

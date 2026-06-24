@@ -161,6 +161,23 @@ function PosTag({ pos }: { pos: string }) {
   );
 }
 
+function useCardSelectPulse(onActivate: () => void, enabled: boolean) {
+  const [pulsing, setPulsing] = useState(false);
+
+  const handleClick = () => {
+    if (!enabled) return;
+    setPulsing(false);
+    requestAnimationFrame(() => setPulsing(true));
+    onActivate();
+  };
+
+  const handleAnimationEnd = (e: React.AnimationEvent<HTMLElement>) => {
+    if (e.animationName === 'cardSelectPulse') setPulsing(false);
+  };
+
+  return { pulsing, handleClick, handleAnimationEnd };
+}
+
 function PlayerRow({ player, rank, highlighted, selectable, selected, onSelect }: {
   player: { id: number; name: string; pos: string; team: string; owned: number; pts: number; trend: string; rank?: number; highlight?: boolean };
   rank?: number;
@@ -170,15 +187,20 @@ function PlayerRow({ player, rank, highlighted, selectable, selected, onSelect }
   onSelect?: () => void;
 }) {
   const isHighlighted = highlighted ?? player.highlight;
+  const { pulsing, handleClick, handleAnimationEnd } = useCardSelectPulse(
+    () => onSelect?.(),
+    !!selectable,
+  );
   return (
     <div
-      onClick={selectable ? onSelect : undefined}
+      onClick={selectable ? handleClick : undefined}
+      onAnimationEnd={selectable ? handleAnimationEnd : undefined}
       style={isHighlighted ? { border: '1.5px solid #FB4F14', background: '#FFF5F0' } :
              selected ? { border: '1.5px solid #FB4F14', background: '#FFF5F0' } :
              { border: '1px solid #E5E2DC', background: '#FFFFFF' }}
-      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-all duration-200 ${
-        selectable ? 'cursor-pointer active:scale-[0.99]' : 'cursor-default'
-      } ${isHighlighted ? 'shadow-md' : ''}`}
+      className={`flex items-center gap-3 px-3 py-3 rounded-xl transition-[background-color,border-color,box-shadow] duration-200 ${
+        selectable ? 'cursor-pointer' : 'cursor-default'
+      } ${isHighlighted ? 'shadow-md' : ''} ${pulsing ? 'card-select-pulse' : ''}`}
     >
       {rank !== undefined && (
         <div
@@ -652,7 +674,7 @@ function ScreenFutureValue({
   const [injuryOpen, setInjuryOpen] = useState(false);
 
   return (
-    <div className="flex flex-col h-full relative overflow-hidden">
+    <div className="flex flex-col h-full relative">
       {snapOpen && <SnapModal onClose={() => setSnapOpen(false)} />}
       {injuryOpen && <InjuryModal onClose={() => setInjuryOpen(false)} />}
       <div className="px-4 pt-1 pb-2 flex-1 overflow-y-auto">
@@ -830,6 +852,63 @@ function Screen5({ onSame, onDifferent, queuedTEs }: {
 }
 
 // Roster Drop screen — all players tappable; AI recommends Wallace but user can override
+function RosterDropRow({
+  player,
+  isSelected,
+  isAiPick,
+  isTaken,
+  onSelect,
+}: {
+  player: typeof ROSTER[number];
+  isSelected: boolean;
+  isAiPick: boolean;
+  isTaken: boolean;
+  onSelect: () => void;
+}) {
+  const { pulsing, handleClick, handleAnimationEnd } = useCardSelectPulse(onSelect, !isTaken);
+
+  return (
+    <div
+      onClick={!isTaken ? handleClick : undefined}
+      onAnimationEnd={!isTaken ? handleAnimationEnd : undefined}
+      className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-[background-color,border-color,box-shadow] duration-200 ${isTaken ? 'opacity-40 cursor-default' : 'cursor-pointer'} ${pulsing ? 'card-select-pulse' : ''}`}
+      style={isSelected
+        ? { background: '#FFF0EE', borderColor: '#FB4F14', boxShadow: '0 1px 4px rgba(251,79,20,0.15)' }
+        : { background: '#FFFFFF', borderColor: '#E5E2DC' }}
+    >
+      <span
+        className="text-[10px] font-bold w-10 flex-shrink-0"
+        style={{ color: isSelected ? '#FB4F14' : '#9CA3AF' }}
+      >
+        {player.slot}
+      </span>
+      <Avatar name={player.name} pos={player.pos} size="md" />
+      <div className="flex-1 min-w-0">
+        <div className="flex items-center gap-1.5 flex-wrap">
+          <span className={`text-sm font-semibold truncate ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
+            {player.name}
+          </span>
+          {isAiPick && isSelected && !isTaken && (
+            <span
+              className="flex-shrink-0 text-[9px] font-bold rounded px-1 py-0.5 uppercase tracking-wide"
+              style={{ background: '#FFEBE5', color: '#FB4F14', border: '1px solid #FFCAB0' }}
+            >
+              AI Pick
+            </span>
+          )}
+          {isTaken && (
+            <span className="flex-shrink-0 text-[9px] font-bold rounded px-1 py-0.5 uppercase tracking-wide bg-gray-100 text-gray-400 border border-gray-200">
+              Already dropping
+            </span>
+          )}
+        </div>
+        <span className={`text-xs ${isSelected ? 'text-gray-500' : 'text-gray-400'}`}>{player.team}</span>
+      </div>
+      {isSelected && !isTaken && <Trash2 className="w-4 h-4 flex-shrink-0" style={{ color: '#FB4F14' }} />}
+    </div>
+  );
+}
+
 function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
   advance: (selectedId: number) => void;
   forTEName?: string;
@@ -865,51 +944,16 @@ function Screen6({ advance, forTEName, passIndex, alreadyDroppedId }: {
         </div>
         <SectionLabel label="Current Roster" />
         <div className="flex flex-col gap-1.5">
-          {ROSTER.map(p => {
-            const isSelected = selectedDropId !== null && p.id === selectedDropId;
-            const isAiPick = p.id === aiPickId && !isSecondPass;
-            const isTaken = p.id === alreadyDroppedId;
-            return (
-              <div
-                key={p.id}
-                onClick={() => !isTaken && setSelectedDropId(p.id)}
-                className={`flex items-center gap-3 rounded-xl px-3 py-2.5 border transition-all ${isTaken ? 'opacity-40 cursor-default' : 'cursor-pointer active:scale-[0.99]'}`}
-                style={isSelected
-                  ? { background: '#FFF0EE', borderColor: '#FB4F14', boxShadow: '0 1px 4px rgba(251,79,20,0.15)' }
-                  : { background: '#FFFFFF', borderColor: '#E5E2DC' }}
-              >
-                <span
-                  className="text-[10px] font-bold w-10 flex-shrink-0"
-                  style={{ color: isSelected ? '#FB4F14' : '#9CA3AF' }}
-                >
-                  {p.slot}
-                </span>
-                <Avatar name={p.name} pos={p.pos} size="md" />
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center gap-1.5 flex-wrap">
-                    <span className={`text-sm font-semibold truncate ${isSelected ? 'text-gray-900' : 'text-gray-700'}`}>
-                      {p.name}
-                    </span>
-                    {isAiPick && isSelected && !isTaken && (
-                      <span
-                        className="flex-shrink-0 text-[9px] font-bold rounded px-1 py-0.5 uppercase tracking-wide"
-                        style={{ background: '#FFEBE5', color: '#FB4F14', border: '1px solid #FFCAB0' }}
-                      >
-                        AI Pick
-                      </span>
-                    )}
-                    {isTaken && (
-                      <span className="flex-shrink-0 text-[9px] font-bold rounded px-1 py-0.5 uppercase tracking-wide bg-gray-100 text-gray-400 border border-gray-200">
-                        Already dropping
-                      </span>
-                    )}
-                  </div>
-                  <span className={`text-xs ${isSelected ? 'text-gray-500' : 'text-gray-400'}`}>{p.team}</span>
-                </div>
-                {isSelected && !isTaken && <Trash2 className="w-4 h-4 flex-shrink-0" style={{ color: '#FB4F14' }} />}
-              </div>
-            );
-          })}
+          {ROSTER.map(p => (
+            <RosterDropRow
+              key={p.id}
+              player={p}
+              isSelected={selectedDropId !== null && p.id === selectedDropId}
+              isAiPick={p.id === aiPickId && !isSecondPass}
+              isTaken={p.id === alreadyDroppedId}
+              onSelect={() => setSelectedDropId(p.id)}
+            />
+          ))}
         </div>
       </div>
 
