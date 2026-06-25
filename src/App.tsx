@@ -232,7 +232,7 @@ const BUBBLE_ANIM_MS = 600;
 const AI_BUBBLE_CLS = 'rounded-2xl rounded-tl-sm px-3.5 py-2.5 text-sm leading-relaxed bg-gray-100 text-gray-800 border border-gray-200';
 
 const WAIVER_INTRO_MSG = "Your only Tight End's on a bye this week. Want to tackle that plan first?";
-const WAIVER_FILTER_MSG = 'Future value guy that could blossom into a starter, or a high ceiling streamer play?';
+const WAIVER_FILTER_MSG = 'Do you prefer a future value guy that could blossom into a starter, or a high ceiling streamer play for the week?';
 
 // Captured synchronously before a screen change so the next ChatPanel can read it on mount.
 let pendingOutgoingMessage: React.ReactNode | null = null;
